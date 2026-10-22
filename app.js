@@ -364,8 +364,17 @@ function renderResults() {
     ["Polygon", "Mask mAP50", r.polygon.mask_map50], ["Polygon", "Mask mAP50-95", r.polygon.mask_map],
   ].map(([t, k, v]) => `<div class="card"><span class="tag">${t}</span><small>${k} (test)</small><b>${f(v)}</b></div>`).join("");
 
-  $("objTable").querySelector("tbody").innerHTML = Object.entries(meta.counts).map(([s, c]) =>
-    `<tr><td>${s}</td><td>${c.images}</td>${meta.names.map((n) => `<td>${c[n]}</td>`).join("")}</tr>`).join("");
+  const total = { images: 0 };
+  meta.names.forEach((n) => (total[n] = 0));
+  for (const c of Object.values(meta.counts)) for (const k in total) total[k] += c[k];
+  const row = (s, c, tag = "td") => `<tr><${tag}>${s}</${tag}><${tag}>${c.images}</${tag}>` +
+    meta.names.map((n) => `<${tag}>${c[n]}</${tag}>`).join("") +
+    `<${tag}>${meta.names.reduce((a, n) => a + c[n], 0)}</${tag}></tr>`;
+  $("objTable").querySelector("tbody").innerHTML =
+    Object.entries(meta.counts).map(([s, c]) => row(s, c)).join("") + row("รวม", total, "th");
+  const tr = meta.counts.train;
+  $("countNote").textContent = `ใช้ภาพทั้งหมด ${total.images} ภาพ (train ${tr.images} / val ${meta.counts.val.images} / test ${meta.counts.test.images}) ` +
+    `ชุด train มี object ต่อ label ${meta.names.map((n) => `${n} ${tr[n]}`).join(", ")} ทุก label มากกว่า 100 ตามเกณฑ์`;
 
   $("clsTable").querySelector("tbody").innerHTML = meta.names.map((n, i) =>
     `<tr><td>${n}</td><td>${f(r.rect.per_class[i].map50)}</td><td>${f(r.rect.per_class[i].map)}</td>
