@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: safariseg
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
+    headers:
+      - path: /model/*
+        name: Cache-Control
+        value: public, max-age=86400

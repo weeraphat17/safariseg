@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SafariSeg</title>
+  <meta name="description" content="ตรวจจับและแบ่งส่วน ช้าง ม้าลาย ยีราฟ ด้วย YOLO26n-seg ทำงานบนเบราว์เซอร์">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <a class="brand" href="#">Safari<span>Seg</span></a>
+      <nav>
+        <a href="#try">ทดลอง</a>
+        <a href="#results">ผลการเทรน</a>
+        <a href="#how">วิธีทำงาน</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <p class="eyebrow">YOLO26n-seg · Polygon Segmentation · Client-side</p>
+      <h1>ตรวจจับ ช้าง ม้าลาย ยีราฟ<br>แบบ Polygon บนเบราว์เซอร์</h1>
+      <p class="lead">อัปโหลดภาพหรือเลือกภาพตัวอย่าง โมเดลจะวาดเส้นขอบ polygon รอบสัตว์แต่ละตัว
+        พร้อมบอกชนิด ความมั่นใจ และพื้นที่ที่วัตถุครอบคลุม ประมวลผลทั้งหมดในเครื่องของคุณ ไม่มีการส่งภาพขึ้นเซิร์ฟเวอร์</p>
+      <div class="chips">
+        <span class="chip"><i style="background:var(--c0)"></i>elephant</span>
+        <span class="chip"><i style="background:var(--c1)"></i>zebra</span>
+        <span class="chip"><i style="background:var(--c2)"></i>giraffe</span>
+      </div>
+    </section>
+
+    <section id="try" class="wrap">
+      <div class="panel try">
+        <div class="stage">
+          <div id="drop" class="drop">
+            <canvas id="canvas" hidden></canvas>
+            <div id="placeholder" class="placeholder">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16l4.6-4.6a2 2 0 0 1 2.8 0L16 16m-2-2 1.6-1.6a2 2 0 0 1 2.8 0L20 14M14 8h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
+              <p>ลากภาพมาวางตรงนี้ หรือกดปุ่ม <b>เลือกภาพ</b></p>
+            </div>
+            <div id="busy" class="busy" hidden><span class="spinner"></span><span id="busyText">กำลังโหลดโมเดล…</span></div>
+          </div>
+          <div class="samples" id="samples"></div>
+        </div>
+
+        <aside class="side">
+          <div class="actions">
+            <label class="btn primary">
+              <input id="file" type="file" accept="image/*" hidden>เลือกภาพ
+            </label>
+            <label class="btn">
+              <input id="camera" type="file" accept="image/*" capture="environment" hidden>ถ่ายภาพ
+            </label>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrl-row"><span>Confidence ขั้นต่ำ</span><b id="confVal">0.35</b></div>
+            <input id="conf" type="range" min="0.05" max="0.95" step="0.05" value="0.35">
+          </div>
+          <div class="toggles">
+            <label><input id="showMask" type="checkbox" checked> ระบาย polygon</label>
+            <label><input id="showBox" type="checkbox"> แสดงกรอบ (Rect)</label>
+            <label><input id="showLabel" type="checkbox" checked> แสดงชื่อ</label>
+          </div>
+
+          <div class="stats">
+            <div><small>วัตถุที่พบ</small><b id="nObj">–</b></div>
+            <div><small>เวลา inference</small><b id="tInf">–</b></div>
+          </div>
+          <div class="counts" id="counts"></div>
+          <ol class="list" id="list"></ol>
+          <p class="status" id="status">กำลังเตรียมโมเดล…</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="results" class="wrap">
+      <h2>ผลการเทรน: Rect vs Polygon</h2>
+      <p class="sub">ใช้ภาพชุดเดียวกันจาก COCO 2017 เทรน 2 แบบ ประเมินบนชุด test ที่โมเดลไม่เคยเห็น</p>
+      <div class="cards" id="metricCards"></div>
+      <div class="panel table-wrap">
+        <table id="objTable">
+          <thead><tr><th>Split</th><th>ภาพ</th><th>elephant</th><th>zebra</th><th>giraffe</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="note">จำนวน Object ต่อ Label ทุก label มากกว่า 100 ตามเกณฑ์</p>
+      </div>
+      <div class="panel table-wrap">
+        <table id="clsTable">
+          <thead><tr><th>Label</th><th>Rect mAP50</th><th>Rect mAP50-95</th><th>Polygon Box mAP50</th><th>Polygon Mask mAP50</th><th>Polygon Mask mAP50-95</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="gallery">
+        <figure><img src="assets/rect_results.png" alt="Rect training curves" loading="lazy"><figcaption>กราฟการเทรน Rect (detect)</figcaption></figure>
+        <figure><img src="assets/polygon_results.png" alt="Polygon training curves" loading="lazy"><figcaption>กราฟการเทรน Polygon (segment)</figcaption></figure>
+        <figure><img src="assets/rect_pred.jpg" alt="Rect prediction" loading="lazy"><figcaption>ผล predict แบบ Rect</figcaption></figure>
+        <figure><img src="assets/polygon_pred.jpg" alt="Polygon prediction" loading="lazy"><figcaption>ผล predict แบบ Polygon</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="how" class="wrap">
+      <h2>วิธีทำงาน</h2>
+      <ol class="steps">
+        <li><b>Letterbox</b> ย่อภาพให้ด้านยาวเป็น 640 คงสัดส่วน เติมขอบสีเทา แปลงเป็น tensor 1×3×640×640 ค่า 0–1</li>
+        <li><b>ONNX Runtime Web</b> รันโมเดล YOLO26n-seg ที่ export จาก best.pt ด้วย WebAssembly ในเบราว์เซอร์</li>
+        <li><b>Decode</b> output0 ให้กรอบ ความมั่นใจ class และสัมประสิทธิ์ mask 32 ค่า output1 คือ prototype mask 32×160×160</li>
+        <li><b>Mask</b> คูณสัมประสิทธิ์กับ prototype ผ่าน sigmoid ตัดเฉพาะในกรอบ threshold 0.5</li>
+        <li><b>Polygon</b> หาเส้นขอบของ mask แล้วลดจำนวนจุดด้วย Douglas–Peucker วาดเป็น polygon บนภาพจริง</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="wrap foot">SafariSeg · Final Project · YOLO26n-seg + ONNX Runtime Web</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
